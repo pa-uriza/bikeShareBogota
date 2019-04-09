@@ -86,6 +86,8 @@ model.Cmantenimiento = pyo.Param()                          #Costo diario de ten
 model.Cadquisicion = pyo.Param()                            #Costo de adquirir una bicicleta
 
 
+
+
 #Defino las variables de decisión 
 
 #model.x = pyo.Var(model.OD, model.ArcsInOD, model.T, within=pyo.NonNegativeReals)                 #Flujo del arco (ni,nj)  para pasajeros con origen no  y destino nd,en la franja de tiempo t. ∀ ni,nj,no,nd ∈ N, t ∈ T.
@@ -100,7 +102,7 @@ model.z = pyo.Var(model.NEst,model.T, within=pyo.NonNegativeReals)              
 #minimiza el costo de uso y de operación del sistema
 
 def obj_rule(model):
-    return (sum(model.x[od,a,t]*model.c[a] for od in model.OD for a in model.ArcsInOD[od] for t in model.T  )+sum (model.z[ni,1]*model.Cmantenimiento for ni in model.NEst)) #Preguntar notación t=1
+    return (sum(model.x[od,a,t]*model.c[a] for od in model.OD for a in model.ArcsInOD[od] for t in model.T  )+sum (model.z[ni,1]*model.Cmantenimiento for ni in model.NEst)) 
 model.obj = pyo.Objective(rule=obj_rule)
 #Preguntar recorridos sobre arcos
 
@@ -108,7 +110,7 @@ model.obj = pyo.Objective(rule=obj_rule)
 
 # 1. Debo cumplir con todas las demandas entre puntos de origen y destino:
 def cumplir_demandas_rule(model,no,nd,ni,t):
-    return ((sum(model.x[no,nd,ni,nj,t] for nj in model.NodesOut[ni] if (ni,nj) in model.ArcsInOD[no,nd])  - sum(model.x[no,nd,nj,ni,t] for nj in model.NodesIn[ni] if (ni,nj) in model.ArcsInOD[no,nd]))==model.b[no,nd,ni,t])
+    return ((sum(model.x[no,nd,ni,nj,t] for nj in model.NodesOut[ni] if (ni,nj) in model.ArcsInOD[no,nd])  - sum(model.x[no,nd,nj,ni,t] for nj in model.NodesIn[ni] if (nj,ni) in model.ArcsInOD[no,nd]))==model.b[no,nd,ni,t])
 model.cumplir_demandas_rule = pyo.Constraint(model.OD, model.N, model.T, rule= cumplir_demandas_rule)
 
 
@@ -150,17 +152,20 @@ getcwd()
 instance = model.create_instance("PG2Pyomo.dat")
 #Resolver el modelo
 opt = pyo.SolverFactory('gurobi')
-opt.solve(instance)
 
-instance.presupuesto.display()
+#instance.presupuesto.display()
 
+# Optimize
+results = opt.solve(instance)
 
+# Write the output
+results.write(num=1)
 
 for v in instance.component_objects(pyo.Var, active=True):
-    print("Variable",v) # doctest: +SKIP
-    for index in v:
-            print (" ",index, pyo.value(v[index])) # doctest: +SKIP
-
+    varobject = getattr(instance, str(v))
+    for index in varobject:
+            print ("   ", index, varobject[index].value)
+   
 #for v in instance.component_objects(Var):
 #    varobject = getattr(instance, str(v))
 #    for index in varobject:
