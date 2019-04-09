@@ -1,0 +1,109 @@
+set NOD := OD1 OD2 OD3;
+
+set NEst := E0 E1 E2 E3;
+
+set N := OD1 OD2 OD3 E0 E1 E2 E3;
+
+set OD := 
+OD1 OD2
+OD1 OD3
+OD2 OD1
+OD2 OD3
+OD3 OD1
+OD3 OD2;
+
+set A := 
+OD1 E0
+OD1 E1
+OD2 E0
+OD2 E2
+OD3 E0
+OD3 E3
+E0 OD1
+E0 OD2
+E0 OD3
+E0 E1
+E0 E2
+E0 E3
+E1 OD1
+E1 E2
+E1 E3
+E2 OD2
+E2 E1
+E2 E3
+E3 OD3
+E3 E1
+E3 E2;
+
+#set T := 1 2;
+
+set W := pequena mediana grande;
+
+param: Tmax := 2;
+
+param: b :=
+OD1 OD2 OD1 1 50
+OD1 OD2 OD2 1 -50
+OD1 OD3 OD1 1 30
+OD1 OD3 OD3 1 -30
+OD2 OD1 OD2 1 40
+OD2 OD1 OD1 1 -40
+OD2 OD3 OD2 1 40
+OD2 OD3 OD3 1 -40
+OD3 OD1 OD3 1 40 
+OD3 OD1 OD1 1 -40
+OD3 OD2 OD3 1 30 
+OD3 OD2 OD2 1 -30
+OD1 OD2 OD1 2 100
+OD1 OD2 OD2 2 -100
+OD1 OD3 OD1 2 150
+OD1 OD3 OD3 2 -150
+OD2 OD1 OD2 2 100
+OD2 OD1 OD1 2 -100
+OD2 OD3 OD2 2 100
+OD2 OD3 OD3 2 -100
+OD3 OD1 OD3 2 90
+OD3 OD1 OD1 2 -90
+OD3 OD2 OD3 2 80 
+OD3 OD2 OD2 2 -80;
+
+
+param: c :=
+OD1 E0 10
+OD1 E1 0.9
+OD2 E0 10
+OD2 E2 0.6
+OD3 E0 10
+OD3 E3 1.2
+E0 OD1 10
+E0 OD2 10
+E0 OD3 10
+E0 E1 1.2
+E0 E2 0.8
+E0 E3 1.6
+E1 OD1 1.2
+E1 E2 1.2
+E1 E3 1.4
+E2 OD2 0.8
+E2 E1 1.2
+E2 E3 2.2
+E3 OD3 1.6
+E3 E1 1.4
+E3 E2 2.2;
+
+param: Cconstruccion :=
+pequena 1000
+mediana 1500
+grande 2000;
+
+param: capacidad :=
+pequena 20
+mediana 40
+grande 60;
+
+param Pconstruccion := 9000;
+
+param Cmantenimiento := 2;
+
+param Cadquisicion := 5;
+
