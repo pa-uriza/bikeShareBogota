@@ -77,15 +77,15 @@ OD3 OD2 OD3 2 80
 OD3 OD2 OD2 2 -80;
 
 param: c :=
-OD1 Sink 10
+OD1 Sink 100
 OD1 E1 0.9
-OD2 Sink 10
+OD2 Sink 100
 OD2 E2 0.6
 OD3 Sink 10
 OD3 E3 1.2
-Sink OD1 10
-Sink OD2 10
-Sink OD3 10
+Sink OD1 0
+Sink OD2 0
+Sink OD3 0
 E1 OD1 1.2
 E1 E2 1.2
 E1 E3 1.4
