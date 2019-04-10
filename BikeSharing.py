@@ -34,8 +34,6 @@ def NodesOut_init(model, node):
             retval.append(l) 
     return retval
 model.NodesOut = pyo.Set(model.N, initialize=NodesOut_init)
-model.NEstOut = pyo.Set(model.NEst, initialize=NodesOut_init)
-
 
 #Define el subconjunto de nodos de entrada para un nodo dado
 def NodesIn_init(model, node): 
@@ -45,27 +43,24 @@ def NodesIn_init(model, node):
             retval.append(k) 
     return retval
 model.NodesIn = pyo.Set(model.N, initialize=NodesIn_init)
-model.NEstIn = pyo.Set(model.NEst, initialize=NodesIn_init)
 
-#Define el subconjunto de arcos que componen una ruta
-#def ArcsInOD_init(model, no, nd): 
- #   retval = []
-  #  for ni in model.NodesOut[no]:
-   #     if ni in model.NSink: 
-    #        if (ni,nd) in model.A:
-    #            retval.append((no,ni))
-     #           retval.append((ni,nd))
-      #  else:
-       #     if ni in model.NEst:
-         #      for nj in model.NEstOut[ni]: 
-          #         if nj in model.NEst:
-           #            if (nj,nd) in model.A:
-            #              retval.append((no,ni))
-             #             retval.append((ni,nj))     
-                #           retval.append((nj,nd))                     
-   # return retval
-#model.ArcsInOD = pyo.Set(model.OD,within=model.N*model.N, initialize=ArcsInOD_init)
+#Define el subconjunto de nodos de estación de salida para un nodo de estación dado
+def StationNodesOut_init(model, node): 
+    retval = []
+    for (i,j,k,l) in model.A: 
+        if k == node and l in model.NEst:
+            retval.append(l) 
+    return retval
+model.NEstOut = pyo.Set(model.N, initialize=StationNodesOut_init)
 
+#Define el subconjunto de nodos de entrada para un nodo dado
+def StationNodesIn_init(model, node): 
+    retval = []
+    for (i,j,k,l) in model.A: 
+        if l == node and k in model.NEst:
+            retval.append(k) 
+    return retval
+model.NEstIn = pyo.Set(model.N, initialize=StationNodesIn_init)
 
 model.Tmax = pyo.Param()
 model.T = pyo.RangeSet(1,model.Tmax)                     # Conjunto de franjas de tiempo a analizar
@@ -122,24 +117,24 @@ model.one_size_per_station_rule = pyo.Constraint(model.NEst, rule=un_tamaño_por
 #3. Balanceo de inventario de bicicletas
 def balanceo_bicicletas_rule(model,ni,t):
     if t < model.Tmax:
-        return ((sum(model.x[no,nd,nj,ni,t] for (no,nd) in model.OD for nj in model.NEstIn[ni] if (no,nd,nj,ni) in model.A ) - sum(model.x[no,nd,ni,nj,t] for (no,nd) in model.OD for nj in model.NEstOut[ni] if (no,nd,ni,nj) in model.A ) + model.z[ni,t])== model.z[ni,(t+1)])
+        return (sum(model.x[no,nd,nj,ni,t] for (no,nd) in model.OD for nj in model.NEstIn[ni] if (no,nd,nj,ni) in model.A ) - sum(model.x[no,nd,ni,nj,t] for (no,nd) in model.OD for nj in model.NEstOut[ni] if (no,nd,ni,nj) in model.A ) + model.z[ni,t])== model.z[ni,(t+1)]
     else:
-        return pyo.Constraint.Skip
+        return (sum(model.x[no,nd,nj,ni,t] for (no,nd) in model.OD for nj in model.NEstIn[ni] if (no,nd,nj,ni) in model.A ) - sum(model.x[no,nd,ni,nj,t] for (no,nd) in model.OD for nj in model.NEstOut[ni] if (no,nd,ni,nj) in model.A ) + model.z[ni,t])<=sum(model.y[ni,w]*model.Q[w] for w in model.W)
 model.balanceo_bicicletas_rule = pyo.Constraint(model.NEst, model.T, rule=balanceo_bicicletas_rule)
 
 #4. Para cada estación, el inventario no puede superar la capacidad en ninguna franja horaria
-def capcidad_inventario_rule(model,ni,t):
-    return (model.z[ni,t]<=sum(model.y[ni,w]*model.Q[w] for w in model.W))
-model.capcidad_inventario_rule = pyo.Constraint(model.NEst, model.T, rule=capcidad_inventario_rule)
+def capacidad_inventario_rule(model,ni,t):
+    return model.z[ni,t]<=sum(model.y[ni,w]*model.Q[w] for w in model.W)
+model.capacidad_inventario_rule = pyo.Constraint(model.NEst, model.T, rule=capacidad_inventario_rule)
 
 #5.Para cada estación, el flujo de salida de una estación hacia una estación no puede superar a la flota de bicicletas disponible en ese momento
 def flujo_salida_inventario_rule(model,ni,t):
-    return (sum(model.x[no,nd,ni,nj,t] for (no,nd) in model.OD for nj in model.NEstOut[ni] if (no,nd,ni,nj) in model.A) <= model.z[ni,t])
+    return sum(model.x[no,nd,ni,nj,t] for (no,nd) in model.OD for nj in model.NEstOut[ni] if (no,nd,ni,nj) in model.A) <= model.z[ni,t]
 model.flujo_salida_inventario_rule = pyo.Constraint(model.NEst, model.T, rule= flujo_salida_inventario_rule)
 
 #9.Presupuesto
 def presupuesto_rule(model):
-    return (sum (model.y[ni,w]* model.CBuild[w] for ni in model.NEst for w in model.W) + model.CAcquire* sum (model.z[ni,1] for ni in model.NEst)<=model.Budget)
+    return sum (model.y[ni,w]* model.CBuild[w] for ni in model.NEst for w in model.W) + model.CAcquire* sum (model.z[ni,1] for ni in model.NEst)<=model.Budget
 model.presupuesto = pyo.Constraint(rule=presupuesto_rule)
 
 
@@ -162,3 +157,8 @@ for v in instance.component_objects(pyo.Var,active=True):
     for index in varobject:
         if varobject[index].value > 0:
             print ("   ", index, varobject[index].value)
+            
+for v in instance.component_objects(pyo.Var,active=True):
+    varobject = getattr(instance, str(v))
+    for index in varobject:
+        print ("   ", index, varobject[index].value)
