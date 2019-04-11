@@ -9,10 +9,9 @@ import pyomo.environ as pyo
 import pandas as pd
 from os import chdir, getcwd
 
-#Read data
+#%% Read data
 # chdir("/Users/lukasbogota/Desktop/PG2/Pyomo")
 path='ToyInstance.xlsx'
-NOD = pd.read_excel(path, sheetname='NOD', index_col = [0])
 NEst = pd.read_excel(path, sheetname='NEst', index_col = [0])
 NSink = pd.read_excel(path, sheetname='NSink', index_col = [0])
 A = pd.read_excel(path, sheetname='A', index_col = [0,1,2,3])
@@ -21,21 +20,24 @@ b = pd.read_excel(path, sheetname='b', index_col = [0,1,2,3])
 c = pd.read_excel(path, sheetname='c', index_col = [0,1])
 Params = pd.read_excel(path, sheetname='Params', header=0 , index_col = [0])
 
-#Define solver
+#%% Define solver
 solver = pyo.SolverFactory('gurobi')
 
-#Creo modelo
-model = pyo.ConcreteModel()
+# %%Creo modelo
+model = pyo.ConcreteModel(name = "Bike Sharing")
 
 #Defino Conjuntos
-                  
-model.NOD = pyo.Set(initialize = NOD.index.tolist())           # Set of origin and destination nodes
+
+model.A = pyo.Set(initialize = A.index.tolist())               # Set of Arcs 
+model.OD = pyo.Set(initialize = set([(no,nd) for (no,nd,ni,nj) in model.A]))        # Set of OD pairs                   
 model.NEst = pyo.Set(initialize = NEst.index.tolist())         # Set of station nodes
 model.NSink = pyo.Set(initialize = NSink.index.tolist())       # Set of sink nodes
-model.A = pyo.Set(initialize = A.index.tolist())               # Set of Arcs    
+
+NOD = []
+for (no,nd) in model.OD: NOD.extend([no,nd])
+model.NOD = pyo.Set(initialize = set(NOD))           # Set of origin and destination nodes
 
 model.N = model.NOD | model.NEst | model.NSink          # Set of all nodes
-model.OD = pyo.Set(initialize = set([(no,nd) for (no,nd,ni,nj) in model.A]))        # Set of OD pairs
 
         
   
@@ -89,7 +91,7 @@ model.W = pyo.Set(initialize = Stations.index.tolist())                     # Co
 
 model.b = pyo.Param(model.OD,model.N,model.T,default = 0,mutable = True, initialize = b.to_dict()['b'])    #Oferta o demanda en nodo ni para viajes con origen no  y destino nd, en la franja de tiempo t. ni,no,nd ∈ N,t ∈ T 
 model.CBuild = pyo.Param(model.W,initialize = Stations.to_dict()['CBuild'])                    #Costo de construir una estación de tamaño w ∈ W
-model.c = pyo.Param(model.N,model.N,initialize = c.to_dict()['c'])                                #Costo del arco que va desde ni hasta nj. ni,nj ∈ N
+model.c = pyo.Param(model.N,model.N,default = 0,initialize = c.to_dict()['c'])                                #Costo del arco que va desde ni hasta nj. ni,nj ∈ N
 model.Q = pyo.Param (model.W,initialize = Stations.to_dict()['Q'])                       #Capacidad de una estación de tamaño w ∈ W
 model.Budget = pyo.Param(initialize = Params.to_dict()['Value']['Budget'])                           #Presupuesto para construir estaciones de bicicleta
 model.CMantainance = pyo.Param(initialize = Params.to_dict()['Value']['CMantainance'])                          #Costo diario de tener una bicicleta
@@ -152,18 +154,18 @@ def presupuesto_rule(model):
     return sum (model.y[ni,w]* model.CBuild[w] for ni in model.NEst for w in model.W) + model.CAcquire* sum (model.z[ni,1] for ni in model.NEst)<=model.Budget
 model.presupuesto = pyo.Constraint(rule=presupuesto_rule)
 
-##Solve
-
+#%%Solve
 # Optimize
 results = solver.solve(model)
 
 # Write the output
 results.write(num=0)
 
+model.display()
            
-for v in model.component_objects(pyo.Var,active=True):
-    varobject = getattr(model, str(v))
-    for index in varobject:
-        if varobject[index].value > 0:
-            print ("   ", index, varobject[index].value)
+#for v in model.component_objects(pyo.Var,active=True):
+#    varobject = getattr(model, str(v))
+#    for index in varobject:
+#        if varobject[index].value > 0:
+#            print ("   ", index, varobject[index].value)
             
